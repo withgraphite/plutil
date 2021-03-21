@@ -1,0 +1,23 @@
+name: Short Tests
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+jobs:
+  CMakeTests:
+    runs-on: ubuntu-latest
+    steps:
+      # Setup
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+
+      - name: Install deps
+        run: sudo apt install libpng-dev libpng16-16 libxml2-dev pkg-config ninja-build
+
+      # Server
+      - name: Run tests
+        run: make test
