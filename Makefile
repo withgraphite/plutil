@@ -21,7 +21,8 @@ all:
 	$(ninja) -C $(build) $(ninja_flags)
 
 install: all
-	@DESTDIR=$(realpath $(PREFIX)) \
+	# @DESTDIR=$(realpath $(PREFIX)) \
+	# 
 	$(ninja) -C $(build) $(ninja_flags) install
 
 project:
