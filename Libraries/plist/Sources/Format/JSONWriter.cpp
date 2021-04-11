@@ -94,7 +94,7 @@ bool JSONWriter::primitiveWriteEscapedString(std::string const &string) {
             default:
                 if (c < 0x20) {
                     char buf[64];
-                    int rc = snprintf(buf, sizeof(buf), "\\%04x", c);
+                    int rc = snprintf(buf, sizeof(buf), "\\u%04x", c);
                     assert(rc < (int)sizeof(buf));
                     (void)rc;
 
