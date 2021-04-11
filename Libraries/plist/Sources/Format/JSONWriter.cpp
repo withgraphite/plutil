@@ -12,35 +12,25 @@
 #include <cassert>
 #include <cinttypes>
 
-using plist::Format::JSONWriter;
-using plist::Object;
-using plist::String;
-using plist::Integer;
-using plist::Real;
+using plist::Array;
 using plist::Boolean;
+using plist::CastTo;
 using plist::Data;
 using plist::Date;
-using plist::Array;
-using plist::UID;
 using plist::Dictionary;
-using plist::CastTo;
+using plist::Integer;
+using plist::Object;
+using plist::Real;
+using plist::String;
+using plist::UID;
+using plist::Format::JSONWriter;
 
-JSONWriter::
-JSONWriter(Object const *root) :
-    _root   (root),
-    _indent (0),
-    _lastKey(false)
-{
-}
+JSONWriter::JSONWriter(Object const *root)
+    : _root(root), _indent(0), _lastKey(false) {}
 
-JSONWriter::
-~JSONWriter()
-{
-}
+JSONWriter::~JSONWriter() {}
 
-bool JSONWriter::
-write()
-{
+bool JSONWriter::write() {
     if (!handleObject(_root, true)) {
         return false;
     }
@@ -52,16 +42,12 @@ write()
  * Low level functions.
  */
 
-bool JSONWriter::
-primitiveWriteString(std::string const &string)
-{
+bool JSONWriter::primitiveWriteString(std::string const &string) {
     _contents.insert(_contents.end(), string.begin(), string.end());
     return true;
 }
 
-bool JSONWriter::
-primitiveWriteEscapedString(std::string const &string)
-{
+bool JSONWriter::primitiveWriteEscapedString(std::string const &string) {
     _contents.reserve(_contents.size() + string.size());
 
     if (!primitiveWriteString("\"")) {
@@ -69,21 +55,56 @@ primitiveWriteEscapedString(std::string const &string)
     }
 
     for (char c : string) {
-        if (c < 0x20) {
-            char buf[64];
-            int rc = snprintf(buf, sizeof(buf), "\\%04x", c);
-            assert(rc < (int)sizeof(buf));
-            (void)rc;
+        switch (c) {
+            case '\b':
+                if (!primitiveWriteString("\\b")) {
+                    return false;
+                }
+                break;
+            case '\f':
+                if (!primitiveWriteString("\\f")) {
+                    return false;
+                }
+                break;
+            case '\n':
+                if (!primitiveWriteString("\\n")) {
+                    return false;
+                }
+                break;
+            case '\r':
+                if (!primitiveWriteString("\\r")) {
+                    return false;
+                }
+                break;
+            case '\t':
+                if (!primitiveWriteString("\\t")) {
+                    return false;
+                }
+                break;
+            case '"':
+                if (!primitiveWriteString("\\\"")) {
+                    return false;
+                }
+                break;
+            case '\\':
+                if (!primitiveWriteString("\\\\")) {
+                    return false;
+                }
+                break;
+            default:
+                if (c < 0x20) {
+                    char buf[64];
+                    int rc = snprintf(buf, sizeof(buf), "\\%04x", c);
+                    assert(rc < (int)sizeof(buf));
+                    (void)rc;
 
-            if (!primitiveWriteString(buf)) {
-                return false;
-            }
-        } else {
-            switch (c) {
-                case '"':  if (!primitiveWriteString("\\\"")) { return false; } break;
-                case '\\': if (!primitiveWriteString("\\"))   { return false; } break;
-                default: _contents.push_back(c); break;
-            }
+                    if (!primitiveWriteString(buf)) {
+                        return false;
+                    }
+                } else {
+                    _contents.push_back(c);
+                }
+                break;
         }
     }
 
@@ -94,9 +115,7 @@ primitiveWriteEscapedString(std::string const &string)
     return true;
 }
 
-bool JSONWriter::
-writeString(std::string const &string, bool final)
-{
+bool JSONWriter::writeString(std::string const &string, bool final) {
     if (final) {
         for (int n = 0; n < _indent; n++) {
             if (!primitiveWriteString("\t")) {
@@ -108,9 +127,7 @@ writeString(std::string const &string, bool final)
     return primitiveWriteString(string);
 }
 
-bool JSONWriter::
-writeEscapedString(std::string const &string, bool final)
-{
+bool JSONWriter::writeEscapedString(std::string const &string, bool final) {
     if (final) {
         for (int n = 0; n < _indent; n++) {
             if (!primitiveWriteString("\t")) {
@@ -126,9 +143,7 @@ writeEscapedString(std::string const &string, bool final)
  * Higher level functions.
  */
 
-bool JSONWriter::
-handleObject(Object const *object, bool root)
-{
+bool JSONWriter::handleObject(Object const *object, bool root) {
     if (Dictionary const *dictionary = CastTo<Dictionary>(object)) {
         if (!handleDictionary(dictionary, root)) {
             return false;
@@ -172,9 +187,7 @@ handleObject(Object const *object, bool root)
     return true;
 }
 
-bool JSONWriter::
-handleDictionary(Dictionary const *dictionary, bool root)
-{
+bool JSONWriter::handleDictionary(Dictionary const *dictionary, bool root) {
     /* Write '{'. */
     if (!writeString("{\n", !_lastKey)) {
         return false;
@@ -222,9 +235,7 @@ handleDictionary(Dictionary const *dictionary, bool root)
     return true;
 }
 
-bool JSONWriter::
-handleArray(Array const *array, bool root)
-{
+bool JSONWriter::handleArray(Array const *array, bool root) {
     /* Write '['. */
     if (!writeString("[\n", !_lastKey)) {
         return false;
@@ -256,9 +267,7 @@ handleArray(Array const *array, bool root)
     return writeString("]", true);
 }
 
-bool JSONWriter::
-handleBoolean(Boolean const *boolean, bool root)
-{
+bool JSONWriter::handleBoolean(Boolean const *boolean, bool root) {
     if (!writeString(boolean->value() ? "true" : "false", !_lastKey)) {
         return false;
     }
@@ -267,9 +276,7 @@ handleBoolean(Boolean const *boolean, bool root)
     return true;
 }
 
-bool JSONWriter::
-handleString(String const *string, bool root)
-{
+bool JSONWriter::handleString(String const *string, bool root) {
     if (!writeEscapedString(string->value(), !_lastKey)) {
         return false;
     }
@@ -278,9 +285,7 @@ handleString(String const *string, bool root)
     return true;
 }
 
-bool JSONWriter::
-handleData(Data const *data, bool root)
-{
+bool JSONWriter::handleData(Data const *data, bool root) {
     if (!writeString("\"", !_lastKey)) {
         return false;
     }
@@ -302,9 +307,7 @@ handleData(Data const *data, bool root)
     return writeString("\"", false);
 }
 
-bool JSONWriter::
-handleReal(Real const *real, bool root)
-{
+bool JSONWriter::handleReal(Real const *real, bool root) {
     char buf[64];
     int rc = snprintf(buf, sizeof(buf), "%g", real->value());
     assert(rc < (int)sizeof(buf));
@@ -319,11 +322,9 @@ handleReal(Real const *real, bool root)
     return true;
 }
 
-bool JSONWriter::
-handleInteger(Integer const *integer, bool root)
-{
-    int               rc;
-    char              buf[32];
+bool JSONWriter::handleInteger(Integer const *integer, bool root) {
+    int rc;
+    char buf[32];
 
     rc = snprintf(buf, sizeof(buf), "%" PRId64, integer->value());
     assert(rc < (int)sizeof(buf));
@@ -338,9 +339,7 @@ handleInteger(Integer const *integer, bool root)
     return true;
 }
 
-bool JSONWriter::
-handleDate(Date const *date, bool root)
-{
+bool JSONWriter::handleDate(Date const *date, bool root) {
     if (!writeEscapedString(date->stringValue(), !_lastKey)) {
         return false;
     }
@@ -349,9 +348,7 @@ handleDate(Date const *date, bool root)
     return true;
 }
 
-bool JSONWriter::
-handleUID(UID const *uid, bool root)
-{
+bool JSONWriter::handleUID(UID const *uid, bool root) {
     /* Write a CF$UID dictionary. */
     std::unique_ptr<Dictionary> dictionary = Dictionary::New();
     dictionary->set("CF$UID", Integer::New(uid->value()));
