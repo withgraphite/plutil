@@ -10,23 +10,20 @@
 #include <plist/Format/JSON.h>
 #include <plist/Objects.h>
 
-using plist::Format::JSON;
-using plist::Format::Encoding;
-using plist::String;
+using plist::Array;
 using plist::Boolean;
+using plist::Dictionary;
 using plist::Integer;
 using plist::Real;
-using plist::Dictionary;
-using plist::Array;
+using plist::String;
+using plist::Format::Encoding;
+using plist::Format::JSON;
 
-static std::vector<uint8_t>
-Contents(std::string const &string)
-{
+static std::vector<uint8_t> Contents(std::string const &string) {
     return std::vector<uint8_t>(string.begin(), string.end());
 }
 
-TEST(JSON, Serialize)
-{
+TEST(JSON, Serialize) {
     auto dictionary = Dictionary::New();
     dictionary->set("boolean", Boolean::New(true));
     dictionary->set("integer", Integer::New(42));
@@ -34,11 +31,12 @@ TEST(JSON, Serialize)
 
     auto serialize = JSON::Serialize(dictionary.get(), JSON::Create());
     ASSERT_NE(serialize.first, nullptr);
-    EXPECT_EQ(*serialize.first, Contents("{\n\t\"boolean\": true,\n\t\"integer\": 42,\n\t\"real\": 3.14\n}"));
+    EXPECT_EQ(*serialize.first,
+              Contents("{\n\t\"boolean\": true,\n\t\"integer\": "
+                       "42,\n\t\"real\": 3.14\n}"));
 }
 
-TEST(JSON, SerializeCollections)
-{
+TEST(JSON, SerializeCollections) {
     auto dict = Dictionary::New();
     dict->set("one", String::New("1"));
     dict->set("two", Integer::New(1));
@@ -53,11 +51,13 @@ TEST(JSON, SerializeCollections)
 
     auto serialize = JSON::Serialize(dictionary.get(), JSON::Create());
     ASSERT_NE(serialize.first, nullptr);
-    EXPECT_EQ(*serialize.first, Contents("{\n\t\"dict\": {\n\t\t\"one\": \"1\",\n\t\t\"two\": 1\n\t},\n\t\"array\": [\n\t\t\"test\",\n\t\t99\n\t]\n}"));
+    EXPECT_EQ(
+        *serialize.first,
+        Contents("{\n\t\"dict\": {\n\t\t\"one\": \"1\",\n\t\t\"two\": "
+                 "1\n\t},\n\t\"array\": [\n\t\t\"test\",\n\t\t99\n\t]\n}"));
 }
 
-TEST(JSON, String)
-{
+TEST(JSON, String) {
     auto contents = Contents("\"str*ng\"");
 
     auto deserialize = JSON::Deserialize(contents, JSON::Create());
@@ -69,11 +69,23 @@ TEST(JSON, String)
     auto serialize = JSON::Serialize(deserialize.first.get(), JSON::Create());
     ASSERT_NE(serialize.first, nullptr);
     EXPECT_EQ(*serialize.first, contents);
+
+    auto contents2 = Contents("\"©\"");
+
+    auto deserialize2 = JSON::Deserialize(contents2, JSON::Create());
+    ASSERT_NE(deserialize2.first, nullptr);
+
+    auto string2 = String::New("©");
+    EXPECT_TRUE(deserialize2.first->equals(string2.get()));
+
+    auto serialize2 = JSON::Serialize(deserialize2.first.get(), JSON::Create());
+    ASSERT_NE(serialize2.first, nullptr);
+    EXPECT_EQ(*serialize2.first, contents2);
 }
 
-TEST(JSON, BooleanNumber)
-{
-    auto contents = Contents("{\n\t\"boolean\": true,\n\t\"integer\": 42,\n\t\"real\": 3.14\n}");
+TEST(JSON, BooleanNumber) {
+    auto contents = Contents(
+        "{\n\t\"boolean\": true,\n\t\"integer\": 42,\n\t\"real\": 3.14\n}");
 
     auto deserialize = JSON::Deserialize(contents, JSON::Create());
     ASSERT_NE(deserialize.first, nullptr);
@@ -89,24 +101,21 @@ TEST(JSON, BooleanNumber)
     EXPECT_EQ(*serialize.first, contents);
 }
 
-TEST(JSON, Empty)
-{
+TEST(JSON, Empty) {
     auto contents = Contents("\n\n");
 
     auto deserialize = JSON::Deserialize(contents, JSON::Create());
     ASSERT_EQ(deserialize.first, nullptr);
 }
 
-TEST(JSON, SingleQuotes)
-{
+TEST(JSON, SingleQuotes) {
     /* Single quotes are not allowed in JSON. */
     auto contents = Contents("{ 'one': 1 }");
     auto deserialize = JSON::Deserialize(contents, JSON::Create());
     EXPECT_EQ(deserialize.first, nullptr);
 }
 
-TEST(JSON, Number)
-{
+TEST(JSON, Number) {
     /* Numbers can be zero. */
     auto contents1 = Contents("{ \"key\" : 0 }");
     auto deserialize1 = JSON::Deserialize(contents1, JSON::Create());
