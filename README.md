@@ -50,7 +50,6 @@ On Windows you can install those tools with [Chocolatey](https://chocolatey.org)
 
 ```sh
 git clone --depth=1 https://github.com/screenplaydev/plutil
-cd xcbuild
 git submodule update --init
 ```
 

@@ -54,7 +54,7 @@ bool JSONWriter::primitiveWriteEscapedString(std::string const &string) {
         return false;
     }
 
-    for (char c : string) {
+    for (unsigned char c : string) {
         switch (c) {
             case '\b':
                 if (!primitiveWriteString("\\b")) {
