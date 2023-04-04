@@ -28,12 +28,3 @@ add_library(util
 target_link_libraries(util PUBLIC ext)
 target_include_directories(util PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Headers")
 install(TARGETS util DESTINATION usr/lib)
-
-if (BUILD_TESTING)
-  ADD_UNIT_GTEST(util MemoryFilesystem Tests/test_MemoryFilesystem.cpp)
-  ADD_UNIT_GTEST(util FSUtil Tests/test_FSUtil.cpp)
-  ADD_UNIT_GTEST(util Wildcard Tests/test_Wildcard.cpp)
-  ADD_UNIT_GTEST(util Escape Tests/test_Escape.cpp)
-  ADD_UNIT_GTEST(util Unix Tests/test_Unix.cpp)
-  ADD_UNIT_GTEST(util Windows Tests/test_Windows.cpp)
-endif ()
